@@ -1,0 +1,145 @@
+# Kmeans clustering
+
+```r
+library(purrr)
+library(ggplot2)
+```
+
+# Functions 
+
+```r
+# Calculates the euclidian distance between data points
+calcEuclidianDist = function(x, y) {
+  x = as.vector(unlist(x))
+  y = as.vector(y)
+  #print(x)
+  #print(y)
+  return(sqrt((x - y) %*% (x - y)))
+}
+
+# Generate a training model object
+# x = observed data, 
+# labels : The classes of the observed data 
+initialise = function(x, k){
+  
+  # Initialise
+  kmeans = list(data = x,
+                     cluster.id = NULL,
+                     centroids =  NULL)
+  
+  # Select random data points to be the initial k centroids
+  rand.rows = sample(1:nrow(kmeans$data), k)
+  kmeans$centroids = map(rand.rows, function(row){unlist(kmeans$data[row,])})
+  names(kmeans$centroids) = 1:k
+  return(kmeans)
+}
+
+# Calculate distance to centroids and assign to closest 
+findClosestCentroid = function(x, centroids){
+  distances.to.centroids = unlist(map(centroids, calcEuclidianDist, x))
+  min_distance = min(distances.to.centroids)
+  cluster = which(distances.to.centroids == min_distance)
+  if (length(cluster) > 1) {
+    return(cluster[1])
+  } else {
+    return(cluster)
+  }
+}
+
+# Function to assign each data point to a cluster given
+# current centroids
+assignToClusters = function(x, centroids) {
+  cluster.id = apply(x, 1, findClosestCentroid, centroids)
+  return(cluster.id)
+}
+
+# Function for recalculating the centroids 
+reCalcCentroids = function(x, cluster.id) {
+  
+  # Merge data temporarily into a single data frame
+  merged.data = data.frame(x, cluster.id = cluster.id)
+  
+  # Split by cluster.id into sub data frames  
+  split.by.cluster = split(merged.data, merged.data$cluster.id)
+  
+  # For each cluster calculate the column means
+  # will be the new centroids 
+  calcColMeans = function(x) {
+    return(apply(x[,-ncol(x)], 2, mean))
+  }
+  centroids = map(split.by.cluster, calcColMeans)
+  return(centroids)
+}
+
+# Test if the clusters change 
+clusterIdsDiff = function(prev.ids, current.ids){
+  print(table(prev.ids == current.ids))
+  return(!all(prev.ids == current.ids))
+}
+
+
+### MAIN ###
+
+Kmeans = function(x, k) {
+  
+  # Initialise 
+  # x : data, k : number of centroids 
+  kmeans.obj = initialise(x, k)
+  
+  # Assign to clusters 
+  kmeans.obj$cluster.id = assignToClusters(kmeans.obj$data, kmeans.obj$centroids)
+  
+  # Begin iteration 
+  convergence = FALSE
+  while (convergence == FALSE) {
+    
+    # Recalculate centroids
+    kmeans.obj$centroids = reCalcCentroids(kmeans.obj$data, kmeans.obj$cluster.id)
+    
+    # Assign to clusters
+    new.cluster.ids = assignToClusters(kmeans.obj$data, kmeans.obj$centroids)
+    
+    # Check if new cluster ids are the same as previous ids 
+    diff = clusterIdsDiff(kmeans.obj$cluster.id, new.cluster.ids)
+    
+    if (diff == TRUE) {
+      convergence = FALSE
+      kmeans.obj$cluster.id = new.cluster.ids
+    } else {
+      convergence = TRUE
+    }
+  }
+  return(kmeans.obj)
+}
+
+```
+
+# EXAMPLE
+
+```r
+data("iris")
+```
+
+```r
+iris.2d = data.frame(Sepal.Length = iris$Sepal.Length, Sepal.Width = iris$Sepal.Width)
+```
+
+```r
+res = Kmeans(iris.2d, 3)
+```
+
+```r
+res$cluster.id
+```
+
+
+```r
+viz.df = data.frame(res$data, cluster.id = res$cluster.id)
+```
+
+
+```r
+ggplot(viz.df, aes(x = Sepal.Length, y = Sepal.Width, colour = as.factor(cluster.id))) + geom_point()
+```
+
+

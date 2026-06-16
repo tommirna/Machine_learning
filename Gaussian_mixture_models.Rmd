@@ -1,0 +1,55 @@
+---
+title: "Gaussian mixture models"
+output: html_notebook
+---
+
+# Functions 
+
+```{r}
+# Initialise the model 
+initialise = function(x, k) {
+  
+  # Initialise
+  model.obj = list(data = x,
+                   class.prob = NULL,
+                   class.means = NULL,
+                   class.var = NULL)
+  
+  # Assign each data point randomly to be 
+  # generated from a distribution (hard assignment)
+  randomAssign = function(x, k){
+    x[sample(1:k, 1)] = 1
+    return(x)
+  }
+  class.prob = matrix(rep(0,length(model.obj$data) * k), nrow = length(model.obj$data))
+  model.obj$class.prob = t(apply(class.prob, 1, randomAssign, k = k))
+  
+  
+  model.obj$class.means = t(as.matrix(model.obj$data)) %*% as.matrix(model.obj$class.prob) /
+  t(t(as.matrix(model.obj$class.prob)) %*% as.matrix(model.obj$class.prob) %*% rep(1, k))
+  
+  
+  #sample(1:k, length(model.obj$data))
+  return(model.obj)
+}
+
+```
+
+
+```{r}
+rep(1, 2)
+```
+
+
+```{r}
+x = c(1,2,3,4,2,1,5)
+k = 2
+```
+
+```{r}
+initialise(x, k)
+```
+
+
+
+

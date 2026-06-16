@@ -1,0 +1,84 @@
+---
+title: "Knn implementation"
+output: html_notebook
+---
+
+# Introduction
+
+```{r}
+library(ggplot2)
+```
+
+# Functions 
+
+```{r}
+# Calculates the euclidian distance between data points
+calcEuclidianDist = function(x, y) {
+  return(sqrt((x - y) %*% (x - y)))
+}
+
+# Generate a training model object
+# x = observed data, 
+# labels : The classes of the observed data 
+generateTrainingModel = function(x, labels){
+  training.model = list(data = x,
+                        classes = labels)
+  return(training.model)
+}
+
+# Predict class
+predictClass = function(obs, training.model, k){
+  
+  print(training.model$x)
+  
+  # Calculate distances
+  distances = apply(training.model$data, 1, calcEuclidianDist, obs)
+  
+  # Find the k smallest distances
+  labels.ordered = training.model$classes[order(distances)]
+  
+  # Select k and count
+  label.counts = as.data.frame(table(labels.ordered[1:k]))
+  
+  # Find the majority vote
+  predicted.class = label.counts$Var1[label.counts$Freq == max(label.counts$Freq)]
+  
+  # 
+  prediction.obj = list()
+  prediction.obj$predicted.class =  predicted.class 
+  prediction.obj$kneighbours = training.model$data[order(distances)[1:k],]
+  
+  return(prediction.obj)
+}
+```
+
+
+# EXAMPLE
+
+```{r}
+data("iris")
+```
+
+```{r}
+iris
+```
+```{r}
+ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, colour = Species)) + geom_point()
+```
+
+```{r}
+# Generate 2D data
+iris.2d = data.frame(Sepal.Length = iris$Sepal.Length, Sepal.Width = iris$Sepal.Width)
+labels = iris$Species
+    
+# "Train model"                 
+knn.model = generateTrainingModel(iris.2d, labels)
+
+# Predict the class
+prediction.obj = predictClass(obs = c(5,2.5) , training.model = knn.model, k = 5)
+```
+
+```{r}
+prediction.obj$kneighbours
+```
+
